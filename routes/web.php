@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DownloadController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/download/attachments/tasks/{modelId}/{mediaId}', [DownloadController::class, 'download'])
+    ->name('media.download')
+    ->middleware('auth:sanctum');
