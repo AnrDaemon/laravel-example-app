@@ -16,13 +16,7 @@ class TaskController extends Controller
             'status' => 'string|in:planned,in_progress,done' . $required,
             'date_finished' => 'nullable|string',
             'assignee_user_id' => 'nullable|integer|exists:users,id',
-            'attachment' => 'nullable|mimes:jpg,jpeg,png,pdf,doc,docx'
         ]);
-    }
-
-    public function __construct()
-    {
-        $this->middleware('auth:sanctum');
     }
 
     public function index()
@@ -51,14 +45,17 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
+        $validated = $this->_validate($request);
+        $task->update($validated);
         if ($request->has('attachment')) {
-            $task->clearMediaCollection("attachment");
+            $media = null;
             if (strlen($request->get('attachment'))) {
-                $task->addMediaFromBase64($request->get('attachment'))->toMediaCollection('attachment');
+                $media = $task->addMediaFromBase64($request->get('attachment'));
             }
-        } else {
-            $validated = $this->_validate($request);
-            $task->update($validated);
+            $task->clearMediaCollection("attachment");
+            if (isset($media)) {
+                $media->toMediaCollection('attachment');
+            }
         }
 
         return response()->json($task);
