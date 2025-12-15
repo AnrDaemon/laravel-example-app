@@ -13,7 +13,52 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        return response()->json(Product::simplePaginate($request->input('per_page', 5))->appends($request->query()));
+        $q = $request->input("q");
+        $category_id = $request->input("category_id");
+        $rating_from = $request->input("rating_from");
+        $price_from = $request->input("price_from");
+        $price_to = $request->input("price_to");
+        $in_stock = \filter_var($request->input("in_stock"), \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE);
+        $qb = Product::query();
+
+        if ($q) {
+            $qb->where("name", "LIKE", "%{$q}%");
+        }
+
+        if ($price_from) {
+            $qb->where("price", ">=", $price_from);
+        }
+        if ($price_to) {
+            $qb->where("price", "<=", $price_to);
+        }
+
+        if ($category_id) {
+            $cid = $category_id;
+            if (!is_array($cid)) {
+                $cid = array_filter(explode(",", $cid), fn($e) => $e > 0);
+            }
+            $cid = array_values($cid);
+            $qb->whereIn("category_id", $cid);
+        }
+
+        if ($rating_from) {
+            $qb->where("rating", ">=", $rating_from);
+        }
+
+        if (isset($in_stock)) {
+            $qb->where("in_stock", "=", $in_stock ? 1 : 0);
+        }
+
+        if ($request->input("sort")) {
+            $qb = match ($request->input("sort")) {
+                "price_asc" => $qb->orderBy("price", "ASC"),
+                "price_desc" => $qb->orderBy("price", "DESC"),
+                "rating_desc" => $qb->orderBy("rating", "DESC"),
+                "newest"  => $qb->orderBy("updated_at", "DESC"),
+            };
+        }
+
+        return response()->json($qb->simplePaginate($request->input('per_page', 5))->appends($request->all()));
     }
 
     /**
